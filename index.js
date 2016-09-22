@@ -4,7 +4,7 @@ var jsonfile = require('jsonfile');
 var tokens = require('./tokens.key');
 
 var repeat_str = 'hour';
-var repeat = 1000 * 60;
+var repeat = 1000 * 60 * 60;
 
 var settings = {
   name : 'Botherbot',
@@ -103,7 +103,14 @@ bot.on('message', (msg) => {
       msg.channel && 
       msg.channel.startsWith('D') && // Make sure its a private message
       msg.user != bot.id) { 
-    
+
+    console.log('got a message');
+    bot.getUsers().then(users => {
+      var user = users.members.filter(u => (u.id == msg.user))[0];
+      if (user.name !== 'frankie')
+        bot.postMessageToUser('frankie', 'Got message from `' + user.name + '`:\n>' + msg.text);
+    });
+
     if (admins.indexOf(msg.user) != -1) {
       var split = msg.text.split(' ');
       if (split[0] === 'help') {
