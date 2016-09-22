@@ -1,4 +1,5 @@
 var SlackBot = require('slackbots');
+var jsonfile = require('jsonfile');
 
 var tokens = require('./tokens.key');
 
@@ -9,6 +10,8 @@ var settings = {
   name : 'Botherbot',
   token: tokens.slack,
 };
+
+var savefile = './save.json';
 
 var bot = new SlackBot(settings);
 
@@ -63,11 +66,32 @@ bot.on('start', () => {
 });
 
 var save = () => {
-
+  var clone = Object.keys(bothers).map(key => {
+    var b = bothers[key];
+    return {
+      target: b.target,
+      messages: b.messages.slice(0),
+    };
+  });
+  
+  jsonfile.writeFile(savefile, clone, (err) => {
+    if(err) throw err;
+  });
 };
 
 var load = () => {
 
+  jsonfile.readFile(savefile, (err, get) => {
+    if(err) return; //throw err;
+
+    get.forEach(bother => {
+      bothers[bother.target] = {
+        target: bother.target,
+        messages: bother.messages.slice(0),
+        timeout: setInterval(doBother, repeat, bother.target),
+      };
+    });
+  });
 };
 
 var checkUser = (user) => {
