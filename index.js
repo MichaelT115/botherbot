@@ -95,7 +95,7 @@ var load = () => {
 };
 
 var checkUser = (user) => {
-  return bot.getUserId(user).then((id) => id != undefined);
+  return bot.getUserId(user.replace('@','')).then((id) => id != undefined);
 };
 
 bot.on('message', (msg) => {
@@ -118,38 +118,40 @@ bot.on('message', (msg) => {
       }
 
       else if(split[0] == 'bother' && split.length > 2) {
-        checkUser(split[1]).then(exists => {
+        var name = split[1].replace('@','');
+        checkUser(name).then(exists => {
           if (!exists) {
             bot.postMessage(msg.channel, 'Could not find user.');
             return;
           }
 
-          if(!bothers[split[1]])
-            bothers[split[1]] = {
-              target: split[1],
+          if(!bothers[name])
+            bothers[name] = {
+              target: name,
               messages: [],
-              timeout: setInterval(doBother, repeat, split[1]),
+              timeout: setInterval(doBother, repeat, name),
             };
           console.log('Bother added ', bothers);
 
-          bothers[split[1]].messages.push(split.slice(2).join(' '));
-          bot.postMessage(msg.channel, 'Added bother to ' + split[1] + ': ' + split.slice(2).join(' ') + '\nThey now have ' + bothers[split[1]].messages.length + ' bothers.');
+          bothers[name].messages.push(split.slice(2).join(' '));
+          bot.postMessage(msg.channel, 'Added bother to ' + name + ': ' + split.slice(2).join(' ') + '\nThey now have ' + bothers[name].messages.length + ' bothers.');
           save();
         });
       }
 
       else if(split[0] == 'clear' && split.length == 2) {
-        checkUser(split[1]).then(exists => {
+        var name = split[1].replace('@','');
+        checkUser(name).then(exists => {
           if (!exists) {
             bot.postMessage(msg.channel, 'Could not find user.');
             return;
           }
-          if (!bothers[split[1]] || bothers[split[1]].messages.length == 0) {
+          if (!bothers[name] || bothers[name].messages.length == 0) {
             bot.postMessage(msg.channel, 'User has no bothers.');
           }
           else {
-            bothers[split[1]].messages = [];
-            clearInterval(bothers[split[1]].timeout);
+            bothers[name].messages = [];
+            clearInterval(bothers[name].timeout);
             bot.postMessage(msg.channel, 'User\'s bothers cleared');
             save();
           }
@@ -157,13 +159,14 @@ bot.on('message', (msg) => {
       }
 
       else if(split[0] == 'list' && split.length == 2) {
-        checkUser(split[1]).then(exists => {
+        var name = split[1].replace('@','');
+        checkUser(name).then(exists => {
           if (!exists) {
             bot.postMessage(msg.channel, 'Could not find user.');
             return;
           }
 
-          var bother = bothers[split[1]];
+          var bother = bothers[name];
           if (!bother) bot.postMessage(msg.channel, 'User has no bothers.');
           else bot.postMessage(msg.channel, 'User has ' + bother.messages.length + ' bother' + (bother.messages.length == 1 ? '':'s') + ':\n' + bother.messages.map((m,i) => ('> ' + (i+1) + ') ' + m)).join('\n'));
         });
@@ -171,14 +174,15 @@ bot.on('message', (msg) => {
       }
 
       else if(split[0] == 'remove' && split.length > 2) {
-        checkUser(split[1]).then(exists => {
+        var name = split[1].replace('@','');
+        checkUser(name).then(exists => {
           if (!exists) {
             bot.postMessage(msg.channel, 'Could not find user.');
             return;
           }
 
 
-          var bother = bothers[split[1]];
+          var bother = bothers[name];
           if (!bother) bot.postMessage(msg.channel, 'User has no bothers.');
           else {
             var rem = parseInt(split[2]) - 1;
@@ -209,12 +213,13 @@ bot.on('message', (msg) => {
         bot.postMessage(msg.channel, 'All users bothered.');
       }
       else if(split[0] == "message" && split.length > 2) {
-        checkUser(split[1]).then(exists => {
+        var name = split[1].replace('@','');
+        checkUser(name).then(exists => {
           if (!exists) {
             bot.postMessage(msg.channel, 'Could not find user.');
             return;
           }
-          var target = split[1];
+          var target = name;
           var msg = split.slice(2).join(' ');
           bot.postMessageToUser(target, msg);
           bot.postMessage(msg.channel, 'Message sent!');
