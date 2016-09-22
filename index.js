@@ -158,7 +158,7 @@ bot.on('message', (msg) => {
 
           var bother = bothers[split[1]];
           if (!bother) bot.postMessage(msg.channel, 'User has no bothers.');
-          else bot.postMessage(msg.channel, 'User has ' + bother.messages.length + ':\n' + bother.messages.map((m,i) => ('> ' + i + ') ' + m)).join('\n'));
+          else bot.postMessage(msg.channel, 'User has ' + bother.messages.length + ' bother' + (bother.messages.length == 1 ? '':'s') + ':\n' + bother.messages.map((m,i) => ('> ' + (i+1) + ') ' + m)).join('\n'));
         });
 
       }
