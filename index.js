@@ -140,7 +140,7 @@ var startClock = () => {
   console.log('Not starting cron clock for another ' + minutesToHour + ' minutes');
   setTimeout(() => {
     cronBother();
-    setInterval(cronBother, 60000);
+    setInterval(cronBother, 60 * 60 * 1000);
   }, minutesToHour * 60 * 1000);
 };
 
