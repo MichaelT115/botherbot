@@ -103,6 +103,7 @@ var load = () => {
     get.forEach(bother => {
       constructUser(bother);
     });
+    startClock();
   });
 };
 
@@ -120,18 +121,23 @@ var cronBother = () => {
 
   var day = time.getDay();
 
-  bothers.forEach(bother => {
-    bother.cron.length.forEach(cron => {
+  console.log("cron bother activate for " + weekdays[day] + " hour " + hours);
+
+  
+  for(target in bothers) {
+    var bother = bothers[target];
+    bother.crons.forEach(cron => {
       if (weekdays.indexOf(cron.day) == day && cron.time == hours) {
         bot.postMessageToUser(bother.target, 'Bother bother! I am set to remind you every ' + cron.day + ' at ' + cron.time + ' of the following: \n> ' + cron.message);
       }
     });
-  });
+  }
 };
 var startClock = () => {
   var currentTime = new Date();
   var minutesToHour = 60 - currentTime.getMinutes();
   // Wait until next hour to 
+  console.log('Not starting cron clock for another ' + minutesToHour + ' minutes');
   setTimeout(() => {
     cronBother();
     setInterval(cronBother, 60000);
