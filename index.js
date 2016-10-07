@@ -35,10 +35,13 @@ var help = [
 "> ",
 "> `forcebother`",
 ">   bothers everynoe in the list immediately",
+"> ",
 "> `help`",
 ">   show help message",
-"> `time [set|get] [user] [minutes]`",
+"> ",
+"> `time [set / get] [user] [minutes] `",
 ">   set or get the time between bothers for a user",
+"> ",
 "> `botherevery [user] [weekday] [24time] message`",
 ">   bother user on a schedule with the message",
 ].join('\n');
@@ -51,6 +54,7 @@ var doBother = (botherTarget) => {
 }
 
 var constructUser = (data) => {
+  if (data.delay < 10000) data.delay = 10000;
   
   var obj = {
     target: data.target, // Username of the botheree
@@ -81,6 +85,8 @@ var save = () => {
     return {
       target: b.target,
       messages: b.messages.slice(0),
+      crons: b.crons.slice(0),
+      delay: b.delay,
     };
   });
   
@@ -104,6 +110,34 @@ var load = () => {
 var checkUser = (user) => {
   return bot.getUserId(user.replace('@','')).then((id) => id != undefined);
 };
+
+
+var cronBother = () => {
+  var time = new Date();
+  var hours = time.getHours();
+  // Sanity: Just in case we somehow trigger at like 4:59
+  if (time.getMinutes() > 30) hours += 1;
+
+  var day = time.getDay();
+
+  bothers.forEach(bother => {
+    bother.cron.length.forEach(cron => {
+      if (weekdays.indexOf(cron.day) == day && cron.time == hours) {
+        bot.postMessageToUser(bother.target, 'Bother bother! I am set to remind you every ' + cron.day + ' at ' + cron.time + ' of the following: \n> ' + cron.message);
+      }
+    });
+  });
+};
+var startClock = () => {
+  var currentTime = new Date();
+  var minutesToHour = 60 - currentTime.getMinutes();
+  // Wait until next hour to 
+  setTimeout(() => {
+    cronBother();
+    setInterval(cronBother, 60000);
+  }, minutesToHour * 60 * 1000);
+};
+
 
 bot.on('message', (msg) => {
   if (msg.type == 'message' &&
@@ -155,12 +189,12 @@ bot.on('message', (msg) => {
             bot.postMessage(msg.channel, 'Could not find user.');
             return;
           }
-          if (!bothers[name] || bothers[name].messages.length == 0) {
+          if (!bothers[name] || bothers[name].messages.length + bothers[name].crons.length == 0) {
             bot.postMessage(msg.channel, 'User has no bothers.');
           }
           else {
             bothers[name].messages = [];
-            bothers[name].cron = [];
+            bothers[name].crons = [];
             clearInterval(bothers[name].timeout);
             bot.postMessage(msg.channel, 'User\'s bothers cleared');
             save();
@@ -177,22 +211,21 @@ bot.on('message', (msg) => {
           }
 
           var bother = bothers[name];
-          if (!bother) bot.postMessage(msg.channel, 'User has no bothers.');
+          if (!bother || (bother.messages.length == 0 && bother.crons.length == 0)){
+            bot.postMessage(msg.channel, 'User has no bothers.');
+          }
           else {
-            var i = 0;
-            var botherList = bother.messages.map( (m, ind) => {
-              i = ind;
-              return ('> ' + (ind + 1) + ') ' + m);
-            });
+            var botherList = bother.messages.map( (m, ind) =>
+              ('> ' + (ind + 1) + ') ' + m)
+            );
 
             botherList.push('\nWeeklies:');
 
-            bother.cron.forEach( (entry, ind) => {
-              botherList.push('> ' + (i + ind + 1) + ') Every ' + entry.day + ' at hour ' + entry.time + ': ' + entry.message);
-            });
-            console.log('Huh?', botherList);
-            
-            bot.postMessage(msg.channel, 'User has ' + bother.messages.length + ' bother' + (bother.messages.length == 1 ? '':'s') + ':\n' + bother.messages.map((m,i) => ('> ' + (i+1) + ') ' + m)).join('\n'));
+            bother.crons.forEach( (entry, ind) =>
+              botherList.push('> ' + (bother.messages.length + ind + 1) + ') Every ' + entry.day + ' at hour ' + entry.time + ': ' + entry.message)
+            );
+
+            bot.postMessage(msg.channel, 'User has ' + bother.messages.length + ' bother' + (bother.messages.length == 1 ? '':'s') + ':\n' + botherList.join('\n'));
           }
         });
 
@@ -211,8 +244,8 @@ bot.on('message', (msg) => {
           if (!bother) bot.postMessage(msg.channel, 'User has no bothers.');
           else {
             var rem = parseInt(split[2]) - 1;
-            if (rem != NaN) {
-              if (rem >= bother.messages.length + bother.cron.length || rem < 0) bot.postMessage(msg.channel, 'Bother index ' + (rem + 1) + ' is outside of user\'s bother message list.');
+            if (!isNaN(rem)) {
+              if (rem >= bother.messages.length + bother.crons.length || rem < 0) bot.postMessage(msg.channel, 'Bother index ' + (rem + 1) + ' is outside of user\'s bother message list.');
               else {
                 if (rem < bother.messages.length) {
                   var removed = bother.messages.splice(rem, 1)[0];
@@ -221,7 +254,7 @@ bot.on('message', (msg) => {
                 }
                 else {
                   rem -= bother.messages.length;
-                  var removed = bother.cron.splice(rem, 1)[0];
+                  var removed = bother.crons.splice(rem, 1)[0];
                   bot.postMessage(msg.channel, 'Removed weekly bother from user:\n> Every ' + removed.day + ' at hour ' + removed.time + ': ' + removed.message);
                   save();
                 }
@@ -259,7 +292,7 @@ bot.on('message', (msg) => {
           bot.postMessage(msg.channel, 'Message sent!');
         });
       }
-      else if(cmd == "time" && split.length == 4) {
+      else if(cmd == "time" && split.length >= 3) {
         var name = split[2].replace('@','');
         checkUser(name).then(exists => {
           if (!exists) {
@@ -271,11 +304,11 @@ bot.on('message', (msg) => {
           if (!target)
             target = constructUser({ target:name });
 
-          switch(split[3]) {
+          switch(split[1]) {
             case 'set':
               
-              var minutes = parseInt(split[4]);
-              if (minutes == NaN || minutes <= 0) {
+              var minutes = parseInt(split[3]);
+              if (isNaN(minutes) || minutes <= 0) {
                 bot.postMessage(msg.channel, 'Incorrect usage. See `help`');
               }
               else {
@@ -311,7 +344,7 @@ bot.on('message', (msg) => {
             target = constructUser({ target:name });
           
           var day = weekdays.indexOf(split[2].toLowerCase());
-          var time = split[3];
+          var time = parseInt(split[3]);
           var message = split.slice(4).join(' ');        
 
           if (day == -1) {
@@ -319,14 +352,14 @@ bot.on('message', (msg) => {
             return;
           }
 
-          if (time == NaN || time < 0 || time >= 24) {
+          if (isNaN(time) || time < 0 || time >= 24) {
             bot.postMessage(msg.channel, 'Time `' + time + '` is not within 0-23');
             return;
           }
 
           target.crons.push({
             message: message,
-            day: day,
+            day: split[2],
             time: time,
           });
 
