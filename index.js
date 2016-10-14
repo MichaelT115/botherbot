@@ -1,7 +1,10 @@
 var SlackBot = require('slackbots');
 var jsonfile = require('jsonfile');
 
-var tokens = require('./tokens.key');
+var tokensFile = process.argv[2] || './tokens.key';
+
+console.log("tokens file: ", tokensFile);
+var tokens = require(tokensFile);
 
 var repeat_str = 'hour';
 var repeat = 1000 * 60 * 60;
@@ -69,12 +72,11 @@ var constructUser = (data) => {
 };
 
 bot.on('start', () => {
-  Promise.all([bot.getUserId('frankie'),
-               bot.getUserId('ronni')])
+  Promise.all(tokens.admins.map(val => bot.getUserId(val)))
   .then(val => {
     admins = admins.concat(val);
     load();
-    bot.postMessageToUser('frankie', 'I live.'); 
+    bot.postMessageToUser(tokens.operator, 'I live.'); 
     console.log('started.');
   });
 });
@@ -154,8 +156,8 @@ bot.on('message', (msg) => {
     console.log('got a message ', msg.text);
     bot.getUsers().then(users => {
       var user = users.members.filter(u => (u.id == msg.user))[0];
-      if (user.name !== 'frankie')
-        bot.postMessageToUser('frankie', 'Got message from `' + user.name + '`:\n>' + msg.text);
+      if (user.name !== tokens.operator && tokens.doLog)
+        bot.postMessageToUser(tokens.operator, 'Got message from `' + user.name + '`:\n>' + msg.text);
     });
 
     if (admins.indexOf(msg.user) != -1) {
