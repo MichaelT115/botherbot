@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "jsonfile": "^2.4.0",
+    "simple-git": "^1.54.0",
     "slackbots": "^0.5.2"
   }
 }

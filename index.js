@@ -6,6 +6,13 @@ var tokensFile = process.argv[2] || './tokens.key';
 console.log("tokens file: ", tokensFile);
 var tokens = require(tokensFile);
 
+
+var git;
+
+if (tokens.deployable)
+  git = require('simple-git')(tokens.gitpath);
+
+
 var repeat_str = 'hour';
 var repeat = 1000 * 60 * 60;
 
@@ -47,7 +54,17 @@ var help = [
 "> ",
 "> `botherevery [user] [weekday] [24time] message`",
 ">   bother user on a schedule with the message",
+"> ",
+"> `deploy [branch]`",
+">   deploy branch to server",
 ].join('\n');
+
+if (git)
+  help += '\n' + [
+    "> ",
+    "> `listbranches`",
+    ">   list deployable branches",
+  ].join('\n');
 
 
 var doBother = (botherTarget) => {
@@ -373,6 +390,24 @@ bot.on('message', (msg) => {
 
           bot.postMessage(msg.channel, 'Added weekly bother to `' + name + '`');
           save();
+        });
+      }
+      else if(git && cmd == 'listbranches') {
+        bot.postMessage(msg.channel, 'Updating repo...');
+        git.fetch(() => {
+          git.branch([ '--all', '-v' ], (err, sum) => {
+            var list = sum.all.map(b => {
+              return '`' + b.replace('remotes/origin/','') + '`';
+            });
+
+            list = list.filter((b, i) => {
+              for(var ind = 0; ind < i; ind ++)
+                if (list[ind] == b) return false;
+              return true;
+            });
+
+            bot.postMessage(msg.channel, 'Branches: \n' + list.join('\n'));
+          });
         });
       }
 
