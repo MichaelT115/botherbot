@@ -396,6 +396,12 @@ bot.on('message', (msg) => {
         bot.postMessage(msg.channel, 'Updating repo...');
         git.fetch(() => {
           git.branch([ '--all', '-v' ], (err, sum) => {
+            if(err) {
+              console.log("Error Listing Branches: ", err);
+              bot.postMessage(msg.channel, 'Error Listing Branches: ' + JSON.stringify(err));
+              return;
+            }
+
             var list = sum.all.map(b => {
               return '`' + b.replace('remotes/origin/','') + '`';
             });
@@ -410,7 +416,27 @@ bot.on('message', (msg) => {
           });
         });
       }
-
+      else if(git && cmd == 'deploy') {
+        bot.postMessage(msg.channel, 'Updating repo...');
+        git.fetch(() => {
+          git.checkout(split[1], (err) => {
+            if (err) {
+              console.log("Error deploy: ", err);
+              bot.postMessage(msg.channel, 'Error deploying: ' + JSON.stringify(err));
+            }
+            else {
+              git.pull((err) => {
+                if (err) {
+                  console.log("Error deploy: ", err);
+                  bot.postMessage(msg.channel, 'Error deploying: ' + JSON.stringify(err));
+                }
+                else
+                  bot.postMessage(msg.channel, 'Deployed branch `' + split[1] + '`');
+              });
+            }
+          });
+        });
+      }
       else {
         bot.postMessage(msg.channel, 'Usage error. See `help` for details.');
       }
