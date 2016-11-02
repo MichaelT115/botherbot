@@ -11,7 +11,7 @@ var git;
 
 if (tokens.deployable)
   git = require('simple-git')(tokens.gitpath);
-
+var lazyBranch = "I dunno!";
 
 var repeat_str = 'hour';
 var repeat = 1000 * 60 * 60;
@@ -54,9 +54,6 @@ var help = [
 "> ",
 "> `botherevery [user] [weekday] [24time] message`",
 ">   bother user on a schedule with the message",
-"> ",
-"> `deploy [branch]`",
-">   deploy branch to server",
 ].join('\n');
 
 if (git)
@@ -64,7 +61,13 @@ if (git)
     "> ",
     "> `listbranches`",
     ">   list deployable branches",
-  ].join('\n');
+    "> ",
+    "> `deploy [branch]`",
+    ">   deploy branch to server",
+    "> ",
+    "> `branch`",
+    ">   show currently deployed branch",
+ ].join('\n');
 
 
 var doBother = (botherTarget) => {
@@ -430,12 +433,17 @@ bot.on('message', (msg) => {
                   console.log("Error deploy: ", err);
                   bot.postMessage(msg.channel, 'Error deploying: ' + JSON.stringify(err));
                 }
-                else
+                else {
                   bot.postMessage(msg.channel, 'Deployed branch `' + split[1] + '`');
+                  lazyBranch = split[1];
+                }
               });
             }
           });
         });
+      }
+      else if(git && cmd == 'branch') {
+        bot.postMessage(msg.channel, 'Currently deployed branch: ' + lazyBranch);
       }
       else {
         bot.postMessage(msg.channel, 'Usage error. See `help` for details.');
