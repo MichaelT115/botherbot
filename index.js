@@ -16,7 +16,7 @@ var lazyBranch = "I dunno!";
 var repeat_str = 'hour';
 var repeat = 1000 * 60 * 60;
 
-var weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+var weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'daily'];
 
 var settings = {
   name : 'Botherbot',
@@ -149,7 +149,7 @@ var cronBother = () => {
   for(target in bothers) {
     var bother = bothers[target];
     bother.crons.forEach(cron => {
-      if (weekdays.indexOf(cron.day) == day && cron.time == hours) {
+      if ((weekdays.indexOf(cron.day) == day || weekdays.indexOf(cron.day) == 7) && cron.time == hours) {
         bot.postMessageToUser(bother.target, 'Bother bother! I am set to remind you every ' + cron.day + ' at ' + cron.time + ' of the following: \n> ' + cron.message);
       }
     });
@@ -376,7 +376,7 @@ bot.on('message', (msg) => {
           var message = split.slice(4).join(' ');        
 
           if (day == -1) {
-            bot.postMessage(msg.channel, '`' + day + '` is not a day of the week.');
+            bot.postMessage(msg.channel, '`' + split[2] + '` is not a day of the week.');
             return;
           }
 
